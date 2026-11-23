@@ -137,3 +137,63 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
   </script>
 </body>
 </html>
+<script>
+(function () {
+  const rightTexts = new WeakMap();
+
+  function markRight(el) {
+    if (!el || rightTexts.has(el)) return;
+    const kids = Array.from(el.children).filter(c => c.nodeType === 1);
+    if (kids.length === 4 && kids.every(c => (c.innerText || "").trim().length > 0 && (c.innerText || "").trim().length < 300)) {
+      rightTexts.set(el, (kids[1].innerText || "").trim());
+    }
+  }
+
+  function shuffleGroup(container) {
+    const kids = Array.from(container.children).filter(el => el.nodeType === 1);
+    if (kids.length !== 4 || container.dataset.shuffled === "1") return;
+    if (!kids.every(el => (el.innerText || "").trim().length > 0 && (el.innerText || "").trim().length < 300)) return;
+
+    markRight(container);
+    const targetText = rightTexts.get(container);
+    if (!targetText) return;
+
+    const order = [0, 1, 2, 3];
+    for (let i = order.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [order[i], order[j]] = [order[j], order[i]];
+    }
+
+    container.dataset.shuffled = "1";
+    order.forEach(idx => container.appendChild(kids[idx]));
+
+    const updatedKids = Array.from(container.children).filter(el => el.nodeType === 1);
+    const newRightIdx = updatedKids.findIndex(el => (el.innerText || "").trim() === targetText);
+    if (newRightIdx !== -1 && updatedKids[1]) {
+      const slotTwo = updatedKids[1];
+      const realRight = updatedKids[newRightIdx];
+      if (slotTwo !== realRight) {
+        const tempHtml = slotTwo.innerHTML;
+        slotTwo.innerHTML = realRight.innerHTML;
+        realRight.innerHTML = tempHtml;
+      }
+    }
+  }
+
+  function scan() {
+    document.querySelectorAll("div, ul, ol, section").forEach(el => {
+      if (el.children.length === 4) shuffleGroup(el);
+    });
+  }
+
+  const observer = new MutationObserver(() => {
+    clearTimeout(window.__k53FixTimer);
+    window.__k53FixTimer = setTimeout(scan, 30);
+  });
+
+  window.addEventListener("DOMContentLoaded", () => {
+    scan();
+    observer.observe(document.body, { childList: true, subtree: true });
+  });
+})();
+</script>
